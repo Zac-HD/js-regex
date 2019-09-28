@@ -34,26 +34,26 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 | Feature                               | Javascript    | Python    | Handling
 | ---                                   | ---           | ---       | ---
 | `\a` (bell)                           | no            | yes       | TODO: replace with non-escaped char
-| `\ca` through `\cz` and `\cA` through `\cZ` (control characters) | yes | no | TODO: replace with non-escaped char
+| `\ca`-`\cz` and `\cA`-`\cZ` (control characters) | yes | no       | TODO: replace with non-escaped char
 | `\d` for digits, `\w` for word chars, `\s` for whitespace | ascii | unicode | TODO: replace with correct character sets (including `\D`, `\W`, `\S` for negated classes)
 | `$` (end of line/string)              | at end        | allows trailing `\n` | Replaced by Python `\Z`
 | `\A` (start of string)                | no            | yes       | TODO: explicit error, suggest `^`
 | `\Z` (end of string)                  | no            | yes       | TODO: explicit error, suggest `$`
-| Nested references `\1` through `\9`   | yes           | no        | Follows Python behaviour
-| Backreferences non-existent groups are an error | no  | yes       | Follows Python behaviour
-| Backreferences to failed groups also fail | no        | yes       | Follows Python behaviour
-| `(?i)` (case insensitive)             | `/i` only     | yes       | TODO: ???
-| `(?s)` (dot matches newlines)         | no            | yes       | TODO: explicit error
-| `(?m)` (`^` and `$` match at line breaks) | `/m` only | yes       | TODO: ???
-| `(?x)` (free-spacing mode)            | no            | yes       | TODO: explicit error
-| `(?<=text)` (positive lookbehind)     | no            | fixed-length | TODO: explicit error
-| `(?<!text)` (negative lookbehind)     | no            | fixed-length | TODO: explicit error
+| `(?<=text)` (positive lookbehind)     | no            | yes       | TODO: explicit error
+| `(?<!text)` (negative lookbehind)     | no            | yes       | TODO: explicit error
 | `(?(1)then\|else)`                    | no            | yes       | TODO: explicit error
 | `(?(group)then\|else)`                | no            | yes       | TODO: explicit error
 | `(?#comment)`                         | no            | yes       | TODO: explicit error
-| `(?P<name>regex)` (Python-style named capturing group | no | yes  | TODO: explicit error
-| `(?P=name)` (Python-style named backreference) | no   | yes       | TODO: explicit error
+| `(?P<name>regex)` (named capture group) | no          | yes       | TODO: explicit error
+| `(?P=name)` (named backreference)     | no            | yes       | TODO: explicit error
 | Free-spacing / multi-line syntax      | no            | yes       | TODO: explicit error
+| `(?s)` (dot matches newlines)         | no            | yes       | TODO: explicit error
+| `(?x)` (free-spacing mode)            | no            | yes       | TODO: explicit error
+| `(?i)` (case insensitive)             | `/i` only     | yes       | TODO: ???
+| `(?m)` (`^` and `$` match at line breaks) | `/m` only | yes       | TODO: ???
+| Backreferences non-existent groups are an error | no  | yes       | Follows Python behaviour
+| Backreferences to failed groups also fail | no        | yes       | Follows Python behaviour
+| Nested references `\1` through `\9`   | yes           | no        | Follows Python behaviour
 
 
 ## Changelog
