@@ -34,12 +34,12 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 | Feature                               | Javascript    | Python    | Handling
 | ---                                   | ---           | ---       | ---
 | `\a` (bell)                           | no            | yes       | TODO: replace with non-escaped char
-| `\ca` through `\cz` and `\cA` through `\cZ` (control characters) | yes | no | Error in `re.compile()`
+| `\ca` through `\cz` and `\cA` through `\cZ` (control characters) | yes | no | TODO: replace with non-escaped char
 | `\d` for digits, `\w` for word chars, `\s` for whitespace | ascii | unicode | TODO: replace with correct character sets (including `\D`, `\W`, `\S` for negated classes)
 | `$` (end of line/string)              | at end        | allows trailing `\n` | Replaced by Python `\Z`
 | `\A` (start of string)                | no            | yes       | TODO: explicit error, suggest `^`
 | `\Z` (end of string)                  | no            | yes       | TODO: explicit error, suggest `$`
-| Nested references `\1` through `\9`   | yes           | no        | Error in `re.compile()`
+| Nested references `\1` through `\9`   | yes           | no        | Follows Python behaviour
 | Backreferences non-existent groups are an error | no  | yes       | Follows Python behaviour
 | Backreferences to failed groups also fail | no        | yes       | Follows Python behaviour
 | `(?i)` (case insensitive)             | `/i` only     | yes       | TODO: ???

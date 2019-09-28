@@ -14,8 +14,16 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     This is not a full implementation of EMCA-standard regex, but somewhat
     better than simply ignoring the differences between dialects.
     """
-    # TODO: validate input types
+    if not isinstance(pattern, str):
+        raise TypeError(f"pattern={pattern!r} must be a string")
+    if not isinstance(flags, int):
+        raise TypeError(f"flags={flags!r} must be an integer")
     # TODO: validate flags range
+    # TODO: replace JS-only with Python-compatible constructs
+    try:
+        re.compile(pattern)
+    except Exception:
+        raise ValueError(f"pattern={pattern!r} is not a valid regular expression")
     if pattern.endswith("$"):
         pattern = pattern[:-1] + r"\Z"
     # TODO: fix other incompatibilties e.g. \d
