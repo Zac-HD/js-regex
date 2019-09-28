@@ -33,10 +33,10 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 
 | Feature                               | Javascript    | Python    | Handling
 | ---                                   | ---           | ---       | ---
-| `\a` (bell)                           | no            | yes       | TODO: replace with non-escaped char
-| `\ca`-`\cz` and `\cA`-`\cZ` (control characters) | yes | no       | TODO: replace with non-escaped char
-| `\d` for digits, `\w` for word chars, `\s` for whitespace | ascii | unicode | TODO: replace with correct character sets (including `\D`, `\W`, `\S` for negated classes)
-| `$` (end of line/string)              | at end        | allows trailing `\n` | Replaced by Python `\Z`
+| `\a` (bell)                           | no            | yes       | Converted to JS behaviour
+| `\ca`-`\cz` and `\cA`-`\cZ` (control characters) | yes | no       | Converted to JS behaviour
+| `\d` for digits, `\w` for word chars, `\s` for whitespace | ascii | unicode | Converted to JS behaviour (including `\D`, `\W`, `\S` for negated classes)
+| `$` (end of line/string)              | at end        | allows trailing `\n` | Converted to JS behaviour
 | `\A` (start of string)                | no            | yes       | TODO: explicit error, suggest `^`
 | `\Z` (end of string)                  | no            | yes       | TODO: explicit error, suggest `$`
 | `(?<=text)` (positive lookbehind)     | no            | yes       | TODO: explicit error
@@ -57,6 +57,9 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 
 
 ## Changelog
+
+#### 0.2.0 - 2019-09-28
+Convert JS-only syntax to Python equivalent wherever possible.
 
 #### 0.1.0 - 2019-09-28
 Initial release, with project setup and a very basic implementation.
