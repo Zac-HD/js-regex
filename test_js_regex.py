@@ -8,6 +8,7 @@ DATA = [
     # (pattern, [should match], [should not match])
     ("^abc", ["abc", "abcd"], ["not abc"]),
     ("^abc$", ["abc"], ["abc\n"]),
+    (r"^abc\$", ["abc$"], ["abc"]),
 ]
 
 

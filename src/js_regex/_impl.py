@@ -24,7 +24,7 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
         re.compile(pattern)
     except Exception:
         raise ValueError(f"pattern={pattern!r} is not a valid regular expression")
-    if pattern.endswith("$"):
+    if pattern.endswith("$") and not pattern.endswith(r"\$"):
         pattern = pattern[:-1] + r"\Z"
     # TODO: fix other incompatibilties e.g. \d
     # TODO: detect Python-only constructs
