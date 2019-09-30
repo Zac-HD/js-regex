@@ -37,30 +37,36 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 | `\ca`-`\cz` and `\cA`-`\cZ` (control characters) | yes | no       | Converted to JS behaviour
 | `\d` for digits, `\w` for word chars, `\s` for whitespace | ascii | unicode | Converted to JS behaviour (including `\D`, `\W`, `\S` for negated classes)
 | `$` (end of line/string)              | at end        | allows trailing `\n` | Converted to JS behaviour
-| `\A` (start of string)                | no            | yes       | TODO: explicit error, suggest `^`
-| `\Z` (end of string)                  | no            | yes       | TODO: explicit error, suggest `$`
-| `(?<=text)` (positive lookbehind)     | no            | yes       | TODO: explicit error
-| `(?<!text)` (negative lookbehind)     | no            | yes       | TODO: explicit error
-| `(?(1)then\|else)`                    | no            | yes       | TODO: explicit error
-| `(?(group)then\|else)`                | no            | yes       | TODO: explicit error
-| `(?#comment)`                         | no            | yes       | TODO: explicit error
-| `(?P<name>regex)` (named capture group) | no          | yes       | TODO: explicit error
-| `(?P=name)` (named backreference)     | no            | yes       | TODO: explicit error
-| Free-spacing / multi-line syntax      | no            | yes       | TODO: explicit error
-| `(?s)` (dot matches newlines)         | no            | yes       | TODO: explicit error
-| `(?x)` (free-spacing mode)            | no            | yes       | TODO: explicit error
-| `(?i)` (case insensitive)             | `/i` only     | yes       | TODO: ???
-| `(?m)` (`^` and `$` match at line breaks) | `/m` only | yes       | TODO: ???
+| `\A` (start of string)                | no            | yes       | Explicit error, use `^` instead
+| `\Z` (end of string)                  | no            | yes       | Explicit error, use `$` instead
+| `(?<=text)` (positive lookbehind)     | new in ES2018 | yes       | Allowed
+| `(?<!text)` (negative lookbehind)     | new in ES2018 | yes       | Allowed
+| `(?(1)then\|else)`                    | no            | yes       | Explicit error
+| `(?(group)then\|else)`                | no            | yes       | Explicit error
+| `(?#comment)`                         | no            | yes       | Explicit error
+| `(?P<name>regex)` (Python named capture group) | no   | yes       | Not detected (yet)
+| `(?P=name)` (Python named backreference) | no         | yes       | Not detected (yet)
+| `(?<name>regex)` (JS named capture group) | new in ES2018 | no    | TODO: translate to Python equivalent
+| `$<name>` (JS named backreference)    | new in ES2018 | no        | TODO: translate to Python equivalent
+| `(?i)` (case insensitive)             | `/i` only     | yes       | Explicit error, compile with `flags=re.IGNORECASE` instead
+| `(?m)` (`^` and `$` match at line breaks) | `/m` only | yes       | Explicit error, compile with `flags=re.MULTILINE` instead
+| `(?s)` (dot matches newlines)         | no            | yes       | Explicit error, compile with `flags=re.DOTALL` instead
+| `(?x)` (free-spacing mode)            | no            | yes       | Explicit error, there is no corresponding mode in Javascript
 | Backreferences non-existent groups are an error | no  | yes       | Follows Python behaviour
 | Backreferences to failed groups also fail | no        | yes       | Follows Python behaviour
 | Nested references `\1` through `\9`   | yes           | no        | Follows Python behaviour
 
+Note that in many cases Python-only regex features would be treated as part of
+an ordinary pattern by JS regex engines.  Currently we raise an explicit error
+on such inputs, but may translate them to have the JS behaviour in a future version.
+
 
 ## Changelog
 
-#### Next release
+#### 0.3.0 - 2019-09-30
 - Fixed handling of non-trailing `$`, e.g. in `"^abc$|^def$"` both are converted
 - Added explicit errors for `re.LOCALE` and `re.VERBOSE` flags, which have no JS equivalent
+- Added explicit checks and errors for use of Python-only regex features
 
 #### 0.2.0 - 2019-09-28
 Convert JS-only syntax to Python equivalent wherever possible.

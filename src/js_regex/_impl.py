@@ -1,15 +1,15 @@
 """The implementation of the js-regex library."""
 
 import re
-from functools import lru_cache
-from typing import Pattern
+import sre_constants
+import sre_parse
+from typing import Any, Pattern
 
 
 class NotJavascriptRegex(ValueError):
     """The pattern uses Python regex features that do not exist in Javascript."""
 
 
-@lru_cache()
 def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     """Compile the given string, treated as a Javascript regex.
 
@@ -56,12 +56,95 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     )
     # Compile at this stage, to check for Python-only constructs *before* we add any.
     try:
-        rgx = re.compile(pattern, flags=flags)
-    except Exception:
-        raise ValueError(f"pattern={pattern!r} is not a valid regular expression")
-    assert rgx  # TODO: implement those checks
+        parsed = sre_parse.parse(pattern, flags=flags)
+    except re.error as e:
+        raise re.error(str(e) + f" in pattern={pattern!r}") from None
+    check_features(parsed, flags=flags, pattern=pattern)
+    # Check for comments - with `in` because don't appear in the parse tree.
+    if re.search(r"\(\?\#[^)]*\)", pattern):
+        raise NotJavascriptRegex(
+            f"'(?#comment)' groups are ignored by Python, but have no meaning in "
+            "Javascript regular expressions (pattern={pattern!r})"
+        )
     # Replace any unescaped $ - which is allowed in both but behaves
     # differently - with the Python-only \Z which behaves like JS' $.
     pattern = re.sub(r"(?<!\\)[$]", repl=r"\\Z", string=pattern)
     # Finally, we compile our fixed pattern to a Python regex pattern and return it.
     return re.compile(pattern, flags=flags)
+
+
+def check_features(parsed: Any, *, flags: int, pattern: str) -> None:
+    """Recursively walk through a SRE regex parse tree to check that every
+    node is for a feature that also exists in Javascript regular expressions.
+
+    `parsed` is either a list of SRE regex elements representations or a
+    particular element representation. Each element is a tuple of element code
+    (as string) and parameters. E.g. regex 'ab[0-9]+' compiles to following
+    elements:
+
+        [
+            (LITERAL, 97),
+            (LITERAL, 98),
+            (MAX_REPEAT, (1, 4294967295, [
+                (IN, [
+                    (RANGE, (48, 57))
+                ])
+            ]))
+        ]
+
+    This function is inspired by https://github.com/HypothesisWorks/hypothesis
+    /blob/master/hypothesis-python/src/hypothesis/searchstrategy/regex.py
+    """
+    if not isinstance(parsed, tuple):
+        for elem in parsed:
+            assert isinstance(elem, tuple)
+            check_features(elem, flags=flags, pattern=pattern)
+    else:
+        code, value = parsed
+        if code == sre_constants.ASSERT or code == sre_constants.ASSERT_NOT:
+            # Regexes '(?=...)', '(?<=...)', '(?!...)' or '(?<!...)'
+            # (positive/negative lookahead/lookbehind)
+            check_features(value[1], flags=flags, pattern=pattern)
+        elif code == sre_constants.MIN_REPEAT or code == sre_constants.MAX_REPEAT:
+            # Regexes 'a?', 'a*', 'a+', and their non-greedy variants (repeaters)
+            check_features(value[2], flags=flags, pattern=pattern)
+        elif code == sre_constants.BRANCH:
+            # Regex 'a|b|c' (branch)
+            for branch in value[1]:
+                check_features(branch, flags=flags, pattern=pattern)
+        elif code == sre_constants.SUBPATTERN:
+            # Various groups: '(...)', '(:...)' or '(?P<name>...)'
+            # The parser converts group names to numbers, so the `_` doesn't help here
+            _, enabled_flags, disabled_flags, subregex = value
+            check_features(subregex, flags=flags, pattern=pattern)
+            if enabled_flags | disabled_flags:
+                raise NotJavascriptRegex(
+                    "Javascript regular expressions do not support "
+                    "subpattern flags (pattern={pattern!r})"
+                )
+        elif code == sre_constants.AT:
+            # Regexes like '^...', '...$', '\bfoo', '\Bfoo', '\A', '\Z'
+            if value == sre_constants.AT_BEGINNING_STRING:
+                raise NotJavascriptRegex(
+                    r"\A is not valid in Javascript regular expressions - "
+                    f"use ^ instead (pattern={pattern!r})"
+                )
+            if value == sre_constants.AT_END_STRING:
+                raise NotJavascriptRegex(
+                    r"\Z is not valid in Javascript regular expressions - "
+                    f"use $ instead (pattern={pattern!r})"
+                )
+        elif code == sre_constants.GROUPREF_EXISTS:
+            # Regex '(?(id/name)yes-pattern|no-pattern)' (if group exists choice)
+            raise NotJavascriptRegex(
+                "Javascript regular expressions do not support if-group-exists choice, "
+                "like `'(?(id/name)yes-pattern|no-pattern)'` (pattern={pattern!r})"
+            )
+        else:
+            assert code in [
+                sre_constants.IN,  # Regex '[abc0-9]' (set of characters)
+                sre_constants.ANY,  # Regex '.' (any char)
+                sre_constants.LITERAL,  # Regex 'a' (single char)
+                sre_constants.NOT_LITERAL,  # Regex '[^a]' (negation of a single char)
+                sre_constants.GROUPREF,  # Regex '\\1' or '(?P=name)' (group reference)
+            ]

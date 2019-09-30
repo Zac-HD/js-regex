@@ -48,6 +48,74 @@ def test_charclass_transforms(pattern, good_match, bad_match):
 
 
 @pytest.mark.parametrize(
+    "pattern,string",
+    [
+        ("a(?=b)", "ab"),
+        ("a(?=b)", "ac"),
+        ("(?<=a)b", "ab"),
+        ("(?<=a)b", "ac"),
+        ("a(?!b)", "ab"),
+        ("a(?!b)", "ac"),
+        ("(?<!a)b", "ab"),
+        ("(?<!a)b", "ac"),
+        ("a?", "abc"),
+        ("a*", "abc"),
+        ("a+", "abc"),
+        ("a+?", "abc"),
+        ("a{1,2}", "abc"),
+        ("a?", "def"),
+        ("a*", "def"),
+        ("a+", "def"),
+        ("a+?", "def"),
+        ("a{1,2}", "def"),
+    ],
+)
+def test_consistent_behaviour_is_consistent(pattern, string):
+    # The main point of this test is to excercise the recursion in check_features
+    assert repr(re.search(pattern, string)) == repr(
+        js_regex.compile(pattern).search(string)
+    )
+
+
+@pytest.mark.parametrize(
+    "pattern,error",
+    [
+        (1, TypeError),
+        (r"(abc(", re.error),
+        (r"\A", js_regex.NotJavascriptRegex),
+        (r"\Z", js_regex.NotJavascriptRegex),
+        (r"(?#comment)", js_regex.NotJavascriptRegex),
+        (r"(?#a different comment)", js_regex.NotJavascriptRegex),
+        (r"(?i:regex)", js_regex.NotJavascriptRegex),
+        (r"(?-i:regex)", js_regex.NotJavascriptRegex),
+        (r"(?m:regex)", js_regex.NotJavascriptRegex),
+        (r"(?-m:regex)", js_regex.NotJavascriptRegex),
+        (r"(?s:regex)", js_regex.NotJavascriptRegex),
+        (r"(?-s:regex)", js_regex.NotJavascriptRegex),
+        (r"(?x:regex)", js_regex.NotJavascriptRegex),
+        (r"(?-x:regex)", js_regex.NotJavascriptRegex),
+        (r"(abc)(?(1)then|else)", js_regex.NotJavascriptRegex),
+        # Defining a named capture group is checked separately to these named
+        # references; it's therefore a Python-level error or a redundant test.
+        (r"(?(name)then|else)", re.error),
+        (r"(?P<name>regex)(?(name)then|else)", js_regex.NotJavascriptRegex),
+        # Test that check_features recurses through all the things it should
+        (r"a(?=\Z)", js_regex.NotJavascriptRegex),
+        (r"(?<=\A)b", js_regex.NotJavascriptRegex),
+        (r"a(?!\Z)", js_regex.NotJavascriptRegex),
+        (r"(?<!\A)b", js_regex.NotJavascriptRegex),
+        (r"a|(?i:b)|c", js_regex.NotJavascriptRegex),
+        (r"(?i:regex)?", js_regex.NotJavascriptRegex),
+        (r"(?i:regex)+", js_regex.NotJavascriptRegex),
+        (r"(?i:regex)+?", js_regex.NotJavascriptRegex),
+    ],
+)
+def test_pattern_validation(pattern, error):
+    with pytest.raises(error):
+        js_regex.compile(pattern)
+
+
+@pytest.mark.parametrize(
     "flags,error",
     [
         ("flags", TypeError),
@@ -59,12 +127,3 @@ def test_charclass_transforms(pattern, good_match, bad_match):
 def test_flags_validation(flags, error):
     with pytest.raises(error):
         js_regex.compile("", flags=flags)
-
-
-@pytest.mark.parametrize(
-    "pattern,flags,error",
-    [(1, 0, TypeError), ("abc", "flags", TypeError), ("(abc(", 0, ValueError)],
-)
-def test_input_validation(pattern, flags, error):
-    with pytest.raises(error):
-        js_regex.compile(pattern, flags=flags)
