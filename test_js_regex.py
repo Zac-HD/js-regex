@@ -48,6 +48,20 @@ def test_charclass_transforms(pattern, good_match, bad_match):
 
 
 @pytest.mark.parametrize(
+    "flags,error",
+    [
+        ("flags", TypeError),
+        (re.LOCALE, js_regex.NotJavascriptRegex),
+        (re.TEMPLATE, js_regex.NotJavascriptRegex),
+        (re.VERBOSE, js_regex.NotJavascriptRegex),
+    ],
+)
+def test_flags_validation(flags, error):
+    with pytest.raises(error):
+        js_regex.compile("", flags=flags)
+
+
+@pytest.mark.parametrize(
     "pattern,flags,error",
     [(1, 0, TypeError), ("abc", "flags", TypeError), ("(abc(", 0, ValueError)],
 )

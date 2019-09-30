@@ -60,6 +60,7 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 
 #### Next release
 - Fixed handling of non-trailing `$`, e.g. in `"^abc$|^def$"` both are converted
+- Added explicit errors for `re.LOCALE` and `re.VERBOSE` flags, which have no JS equivalent
 
 #### 0.2.0 - 2019-09-28
 Convert JS-only syntax to Python equivalent wherever possible.

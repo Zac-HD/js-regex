@@ -5,6 +5,10 @@ from functools import lru_cache
 from typing import Pattern
 
 
+class NotJavascriptRegex(ValueError):
+    """The pattern uses Python regex features that do not exist in Javascript."""
+
+
 @lru_cache()
 def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     """Compile the given string, treated as a Javascript regex.
@@ -20,6 +24,16 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
         raise TypeError(f"pattern={pattern!r} must be a string")
     if not isinstance(flags, int):
         raise TypeError(f"flags={flags!r} must be an integer")
+    # Check that the supplied flags are legal in both Python and JS.  See
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp#Parameters
+    # and the list of flags at https://docs.python.org/3/library/re.html#re.compile
+    if flags & re.LOCALE:
+        raise NotJavascriptRegex("The re.LOCALE flag has no equivalent in Javascript")
+    if flags & re.TEMPLATE:
+        raise NotJavascriptRegex("The re.TEMPLATE flag has no equivalent in Javascript")
+    if flags & re.VERBOSE:
+        raise NotJavascriptRegex("The re.VERBOSE flag has no equivalent in Javascript")
+
     # Replace JS-only BELL escape with BELL character, and replace character class
     # shortcuts (Unicode in Python) with the corresponding ASCII set like in JS.
     for esc, replacement in [
