@@ -46,9 +46,8 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     except Exception:
         raise ValueError(f"pattern={pattern!r} is not a valid regular expression")
     assert rgx  # TODO: implement those checks
-    # Replace any trailing unescaped $ - which is allowed in both but behaves
+    # Replace any unescaped $ - which is allowed in both but behaves
     # differently - with the Python-only \Z which behaves like JS' $.
-    if pattern.endswith("$") and not pattern.endswith(r"\$"):
-        pattern = pattern[:-1] + r"\Z"
+    pattern = re.sub(r"(?<!\\)[$]", repl=r"\\Z", string=pattern)
     # Finally, we compile our fixed pattern to a Python regex pattern and return it.
     return re.compile(pattern, flags=flags)

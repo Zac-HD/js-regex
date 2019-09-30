@@ -58,6 +58,9 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 
 ## Changelog
 
+#### Next release
+- Fixed handling of non-trailing `$`, e.g. in `"^abc$|^def$"` both are converted
+
 #### 0.2.0 - 2019-09-28
 Convert JS-only syntax to Python equivalent wherever possible.
 

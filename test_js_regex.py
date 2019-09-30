@@ -13,6 +13,8 @@ import js_regex
         ("^abc", "abc", ""),
         ("^abc", "abcd", "not abc"),
         ("^abc$", "abc", "abc\n"),
+        ("^abc$|^def$", "abc", "abc\n"),
+        ("^abc$|^def$", "def", "def\n"),
         (r"^abc\$", "abc$", "abc"),
         (r"\a", "\a", r"\a"),
         (r"\cA", "\x01", r"\cA"),
