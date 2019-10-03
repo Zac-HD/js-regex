@@ -23,8 +23,8 @@ import js_regex
 )
 def test_expected_transforms(pattern, good_match, bad_match):
     regex = js_regex.compile(pattern)
-    assert regex.match(good_match)
-    assert not regex.match(bad_match)
+    assert regex.search(good_match)
+    assert not regex.search(bad_match)
 
 
 @pytest.mark.parametrize(
@@ -40,11 +40,11 @@ def test_expected_transforms(pattern, good_match, bad_match):
 )
 def test_charclass_transforms(pattern, good_match, bad_match):
     regex = js_regex.compile(pattern)
-    assert regex.match(good_match)
-    assert not regex.match(bad_match)
+    assert regex.search(good_match)
+    assert not regex.search(bad_match)
     if ord(bad_match) >= 128:
-        # Non-ascii string is matched by Python, but not in JS mode
-        assert re.compile(pattern).match(bad_match)
+        # Non-ascii string is matched by Python 3, but not in JS mode
+        assert re.compile(pattern).search(bad_match)
 
 
 @pytest.mark.parametrize(
