@@ -1,14 +1,24 @@
 language: python
-python:
-  - "3.6"
-  - "3.7"
+cache: pip
 install:
   - pip install --upgrade pip setuptools tox twine
-script:
-  - tox
-  - git diff --exit-code
 jobs:
   include:
+    - python: "2.7"
+      script:
+        - tox -e py2-test
+    - python: "3.5"
+      script:
+        - tox -e test -- test_js_regex.py
+    - python: "3.6"
+      script:
+        - tox
+        - git diff --exit-code
+    - python: "3.7"
+      script:
+        - tox
+        - git diff --exit-code
     - stage: publish
+      python: "3.6"
       if: branch = master AND repo = Zac-HD/js-regex
       script: python setup.py sdist bdist_wheel && twine upload --skip-existing dist/*

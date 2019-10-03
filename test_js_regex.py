@@ -1,10 +1,18 @@
 """Tests for the js-regex library."""
+# -*- coding: UTF-8 -*-
+
+from __future__ import unicode_literals
 
 import re
+from sys import version_info as python_version
 
 import pytest
 
 import js_regex
+
+PY2 = python_version.major == 2
+SKIP_ON_PY2 = pytest.mark.skipif(PY2, reason="Not supported on Python 2")
+SKIP_BEFORE_36 = pytest.mark.skipif(python_version < (3, 6), reason="also old")
 
 
 @pytest.mark.parametrize(
@@ -30,11 +38,11 @@ def test_expected_transforms(pattern, good_match, bad_match):
 @pytest.mark.parametrize(
     "pattern,good_match,bad_match",
     [
-        (r"\d", "1", "߀"),  # NKO DIGIT ZERO
+        pytest.param(r"\d", "1", "߀", marks=SKIP_ON_PY2),  # NKO DIGIT ZERO
         (r"\D", "߀", "1"),
-        (r"\w", "a", "é"),  # e-acute
+        pytest.param(r"\w", "a", "é", marks=SKIP_ON_PY2),  # Latin-1 e-acute
         (r"\W", "é", "a"),
-        (r"\s", "\t", "\xa0"),  # non-breaking space
+        pytest.param(r"\s", "\t", "\xa0", marks=SKIP_ON_PY2),  # non-breaking space
         (r"\S", "\xa0", "\t"),
     ],
 )
@@ -72,7 +80,8 @@ def test_charclass_transforms(pattern, good_match, bad_match):
 )
 def test_consistent_behaviour_is_consistent(pattern, string):
     # The main point of this test is to excercise the recursion in check_features
-    assert repr(re.search(pattern, string)) == repr(
+    convert = bool if PY2 else repr
+    assert convert(re.search(pattern, string)) == convert(
         js_regex.compile(pattern).search(string)
     )
 
@@ -86,14 +95,14 @@ def test_consistent_behaviour_is_consistent(pattern, string):
         (r"\Z", js_regex.NotJavascriptRegex),
         (r"(?#comment)", js_regex.NotJavascriptRegex),
         (r"(?#a different comment)", js_regex.NotJavascriptRegex),
-        (r"(?i:regex)", js_regex.NotJavascriptRegex),
-        (r"(?-i:regex)", js_regex.NotJavascriptRegex),
-        (r"(?m:regex)", js_regex.NotJavascriptRegex),
-        (r"(?-m:regex)", js_regex.NotJavascriptRegex),
-        (r"(?s:regex)", js_regex.NotJavascriptRegex),
-        (r"(?-s:regex)", js_regex.NotJavascriptRegex),
-        (r"(?x:regex)", js_regex.NotJavascriptRegex),
-        (r"(?-x:regex)", js_regex.NotJavascriptRegex),
+        pytest.param(r"(?i:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?-i:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?m:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?-m:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?s:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?-s:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?x:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?-x:regex)", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
         (r"(abc)(?(1)then|else)", js_regex.NotJavascriptRegex),
         # Defining a named capture group is checked separately to these named
         # references; it's therefore a Python-level error or a redundant test.
@@ -104,10 +113,12 @@ def test_consistent_behaviour_is_consistent(pattern, string):
         (r"(?<=\A)b", js_regex.NotJavascriptRegex),
         (r"a(?!\Z)", js_regex.NotJavascriptRegex),
         (r"(?<!\A)b", js_regex.NotJavascriptRegex),
-        (r"a|(?i:b)|c", js_regex.NotJavascriptRegex),
-        (r"(?i:regex)?", js_regex.NotJavascriptRegex),
-        (r"(?i:regex)+", js_regex.NotJavascriptRegex),
-        (r"(?i:regex)+?", js_regex.NotJavascriptRegex),
+        pytest.param(r"a|(?i:b)|c", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?i:regex)?", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(r"(?i:regex)+", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36),
+        pytest.param(
+            r"(?i:regex)+?", js_regex.NotJavascriptRegex, marks=SKIP_BEFORE_36
+        ),
     ],
 )
 def test_pattern_validation(pattern, error):

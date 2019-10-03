@@ -2,3 +2,10 @@
 pytest
 pytest-cov
 pytest-xdist
+
+# Pytest has conditional dependencies, but pip-compile does not
+# propagate or even preserve the conditions on transitive dependencies.
+pathlib2>=2.2.0             # ;python_version<"3.6"  # not included in .txt if compiled with Python 3.6
+colorama                    ;sys_platform=="win32"
+importlib-metadata>=0.12    ;python_version<"3.8"
+zipp                        ;python_version<"3.8"  # via importlib-metadata, itself via pytest

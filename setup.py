@@ -5,7 +5,8 @@ import os
 import setuptools
 
 
-def local_file(name: str) -> str:
+def local_file(name):
+    # type: (str) -> str
     """Interpret filename as relative to this file."""
     return os.path.relpath(os.path.join(os.path.dirname(__file__), name))
 
@@ -32,7 +33,7 @@ setuptools.setup(
     description="A thin compatibility layer to use Javascript regular expressions in Python",
     zip_safe=False,
     install_requires=[],
-    python_requires=">=3.6",
+    python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

@@ -1,16 +1,27 @@
 """The implementation of the js-regex library."""
+from __future__ import unicode_literals
 
 import re
 import sre_constants
 import sre_parse
-from typing import Any, Pattern
+from sys import version_info as python_version
+
+try:
+    from typing import Any, Pattern
+except ImportError:  # pragma: no cover
+    pass
 
 
 class NotJavascriptRegex(ValueError):
     """The pattern uses Python regex features that do not exist in Javascript."""
 
 
-def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
+if python_version.major < 3:  # pragma: no cover  # Awful Python 2 compat hack.
+    exec("chr = unichr")  # nosec
+
+
+def compile(pattern, flags=0):
+    # type: (str, int) -> Pattern[str]
     """Compile the given string, treated as a Javascript regex.
 
     This aims to match all strings that would be matched in JS, and as few
@@ -20,10 +31,10 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     This is not a full implementation of EMCA-standard regex, but somewhat
     better than simply ignoring the differences between dialects.
     """
-    if not isinstance(pattern, str):
-        raise TypeError(f"pattern={pattern!r} must be a string")
+    if not isinstance(pattern, type("")):
+        raise TypeError("pattern={!r} must be a unicode string".format(pattern))
     if not isinstance(flags, int):
-        raise TypeError(f"flags={flags!r} must be an integer")
+        raise TypeError("flags={!r} must be an integer".format(flags))
     # Check that the supplied flags are legal in both Python and JS.  See
     # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp#Parameters
     # and the list of flags at https://docs.python.org/3/library/re.html#re.compile
@@ -58,13 +69,13 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     try:
         parsed = sre_parse.parse(pattern, flags=flags)
     except re.error as e:
-        raise re.error(str(e) + f" in pattern={pattern!r}") from None
+        raise re.error("{} in pattern={!r}".format(e, pattern))
     check_features(parsed, flags=flags, pattern=pattern)
     # Check for comments - with `in` because don't appear in the parse tree.
     if re.search(r"\(\?\#[^)]*\)", pattern):
         raise NotJavascriptRegex(
-            f"'(?#comment)' groups are ignored by Python, but have no meaning in "
-            "Javascript regular expressions (pattern={pattern!r})"
+            "'(?#comment)' groups are ignored by Python, but have no meaning in "
+            "Javascript regular expressions (pattern={!r})".format(pattern)
         )
     # Replace any unescaped $ - which is allowed in both but behaves
     # differently - with the Python-only \Z which behaves like JS' $.
@@ -73,7 +84,8 @@ def compile(pattern: str, *, flags: int = 0) -> Pattern[str]:
     return re.compile(pattern, flags=flags)
 
 
-def check_features(parsed: Any, *, flags: int, pattern: str) -> None:
+def check_features(parsed, flags, pattern):
+    # type: (Any, int, str) -> None
     """Recursively walk through a SRE regex parse tree to check that every
     node is for a feature that also exists in Javascript regular expressions.
 
@@ -115,9 +127,8 @@ def check_features(parsed: Any, *, flags: int, pattern: str) -> None:
         elif code == sre_constants.SUBPATTERN:
             # Various groups: '(...)', '(:...)' or '(?P<name>...)'
             # The parser converts group names to numbers, so the `_` doesn't help here
-            _, enabled_flags, disabled_flags, subregex = value
-            check_features(subregex, flags=flags, pattern=pattern)
-            if enabled_flags | disabled_flags:
+            check_features(value[-1], flags=flags, pattern=pattern)
+            if python_version >= (3, 6) and (value[1] | value[2]):  # pragma: no cover
                 raise NotJavascriptRegex(
                     "Javascript regular expressions do not support "
                     "subpattern flags (pattern={pattern!r})"
@@ -127,18 +138,20 @@ def check_features(parsed: Any, *, flags: int, pattern: str) -> None:
             if value == sre_constants.AT_BEGINNING_STRING:
                 raise NotJavascriptRegex(
                     r"\A is not valid in Javascript regular expressions - "
-                    f"use ^ instead (pattern={pattern!r})"
+                    "use ^ instead (pattern={!r})".format(pattern)
                 )
             if value == sre_constants.AT_END_STRING:
                 raise NotJavascriptRegex(
                     r"\Z is not valid in Javascript regular expressions - "
-                    f"use $ instead (pattern={pattern!r})"
+                    "use $ instead (pattern={!r})".format(pattern)
                 )
         elif code == sre_constants.GROUPREF_EXISTS:
             # Regex '(?(id/name)yes-pattern|no-pattern)' (if group exists choice)
             raise NotJavascriptRegex(
                 "Javascript regular expressions do not support if-group-exists choice, "
-                "like `'(?(id/name)yes-pattern|no-pattern)'` (pattern={pattern!r})"
+                "like `'(?(id/name)yes-pattern|no-pattern)'` (pattern={!r})".format(
+                    pattern
+                )
             )
         else:
             assert code in [
