@@ -63,6 +63,10 @@ on such inputs, but may translate them to have the JS behaviour in a future vers
 
 ## Changelog
 
+#### 0.4.0 - 2019-10-03
+- Now compatible with Python 2.7 and 3.5, until
+  [their respective EOL dates](https://devguide.python.org/#status-of-python-branches).
+
 #### 0.3.0 - 2019-09-30
 - Fixed handling of non-trailing `$`, e.g. in `"^abc$|^def$"` both are converted
 - Added explicit errors for `re.LOCALE` and `re.VERBOSE` flags, which have no JS equivalent
