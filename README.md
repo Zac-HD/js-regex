@@ -1,6 +1,6 @@
 # js-regex
 
-*A thin compatibility layer to use Javascript regular expressions in Python.*
+*A compatibility layer to use Javascript regular expressions in Python.*
 
 Did you know that regular expressions may vary between programming languages?
 For example, let's consider the pattern `"^abc$"`, which matches the string
@@ -16,16 +16,19 @@ standards like `jsonschema`, and that's why `js-regex` exists.
 import re
 import js_regex
 
-re.compile("^abc$").match("abc\n")  # matches, unlike JS
-js_regex.compile("^abc$").match("abc\n")  # does not match
+re.compile("^abc$").search("abc\n")  # matches, unlike JS
+js_regex.compile("^abc$").search("abc\n")  # does not match
 ```
 
 Internally, `js_regex.compile()` replaces JS regex syntax which has a different
 meaning in Python with whatever *Python* regex syntax has the intended meaning.
 
+**This only works for the `.search()` method** - there is no equivalent to
+`.match()` or `.fullmatch()` for Javascript regular expressions.
+
 We also check for constructs which are valid in Python but not JS - such as
 named capture groups - and raise an explicit error.  Constructs which are valid
-in JS but not Python are also an error, because we're still using Python's
+in JS but not Python may also raise an error, because we're still using Python's
 `re.compile()` function under the hood!
 
 The following table is adapted from [this larger version](https://web.archive.org/web/20130830063653/http://www.regular-expressions.info:80/refflavors.html),
@@ -46,8 +49,8 @@ ommiting other languages and any rows where JS and Python have the same behaviou
 | `(?#comment)`                         | no            | yes       | Explicit error
 | `(?P<name>regex)` (Python named capture group) | no   | yes       | Not detected (yet)
 | `(?P=name)` (Python named backreference) | no         | yes       | Not detected (yet)
-| `(?<name>regex)` (JS named capture group) | new in ES2018 | no    | TODO: translate to Python equivalent
-| `$<name>` (JS named backreference)    | new in ES2018 | no        | TODO: translate to Python equivalent
+| `(?<name>regex)` (JS named capture group) | new in ES2018 | no    | Error from Python, not translated (yet)
+| `$<name>` (JS named backreference)    | new in ES2018 | no        | Error from Python, not translated (yet)
 | `(?i)` (case insensitive)             | `/i` only     | yes       | Explicit error, compile with `flags=re.IGNORECASE` instead
 | `(?m)` (`^` and `$` match at line breaks) | `/m` only | yes       | Explicit error, compile with `flags=re.MULTILINE` instead
 | `(?s)` (dot matches newlines)         | no            | yes       | Explicit error, compile with `flags=re.DOTALL` instead
@@ -62,6 +65,12 @@ on such inputs, but may translate them to have the JS behaviour in a future vers
 
 
 ## Changelog
+
+#### 1.0.0 - 2019-10-04
+- Now considered feature-complete and stable, as all constructs recommended
+  for `jsonschema` patterns are supported and all Python-side incompatibilities
+  are detected.
+- Compiled patterns are now cached on Python 3, exactly as for `re.compile`
 
 #### 0.4.0 - 2019-10-03
 - Now compatible with Python 2.7 and 3.5, until

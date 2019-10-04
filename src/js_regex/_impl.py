@@ -7,9 +7,12 @@ import sre_parse
 from sys import version_info as python_version
 
 try:
-    from typing import Any, Pattern
+    from functools import lru_cache
+    from typing import Any, Pattern  # pragma: no cover  # for Python 2
 except ImportError:  # pragma: no cover
-    pass
+
+    def lru_cache(maxsize):  # type: ignore
+        return lambda f: f
 
 
 class NotJavascriptRegex(ValueError):
@@ -20,6 +23,7 @@ if python_version.major < 3:  # pragma: no cover  # Awful Python 2 compat hack.
     exec("chr = unichr")  # nosec
 
 
+@lru_cache(maxsize=512)  # Matches the internal cache size for re.compile
 def compile(pattern, flags=0):
     # type: (str, int) -> Pattern[str]
     """Compile the given string, treated as a Javascript regex.
