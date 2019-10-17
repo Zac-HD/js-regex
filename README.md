@@ -66,6 +66,10 @@ on such inputs, but may translate them to have the JS behaviour in a future vers
 
 ## Changelog
 
+#### 1.0.1 - 2019-10-17
+- Allow use of native strings on Python 2.  This is not actually valid according
+  to the spec, but it's only going to be around for a few months so whatever.
+
 #### 1.0.0 - 2019-10-04
 - Now considered feature-complete and stable, as all constructs recommended
   for `jsonschema` patterns are supported and all Python-side incompatibilities

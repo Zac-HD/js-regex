@@ -35,7 +35,7 @@ def compile(pattern, flags=0):
     This is not a full implementation of EMCA-standard regex, but somewhat
     better than simply ignoring the differences between dialects.
     """
-    if not isinstance(pattern, type("")):
+    if not isinstance(pattern, (str, type(""))):
         raise TypeError("pattern={!r} must be a unicode string".format(pattern))
     if not isinstance(flags, int):
         raise TypeError("flags={!r} must be an integer".format(flags))
