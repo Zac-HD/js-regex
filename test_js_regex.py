@@ -4,9 +4,11 @@
 from __future__ import unicode_literals
 
 import re
+import string
 from sys import version_info as python_version
 
 import pytest
+from hypothesis import given, settings, strategies as st
 
 import js_regex
 
@@ -138,3 +140,54 @@ def test_pattern_validation(pattern, error):
 def test_flags_validation(flags, error):
     with pytest.raises(error):
         js_regex.compile("", flags=flags)
+
+
+def regex_patterns():
+    """Generates JS-valid regex patterns - a subset of all valid JS regex syntax,
+    but a superset of that recommended for JSON-schema:
+    https://json-schema.org/understanding-json-schema/reference/regular_expressions.html
+    """
+    char = st.sampled_from(
+        ["."]
+        + [re.escape(c) for c in string.printable]
+        + [r"\w", r"\s", r"\d", r"\W", r"\D", r"\S"]
+    )
+    sets = st.tuples(st.sampled_from(["[{}]", "[^{}]"]), st.sets(char, min_size=1)).map(
+        lambda rp: rp[0].format("".join(sorted(rp[1])))
+    )
+    special = st.sampled_from(
+        [r"\a", r"[\b]"] + [r"\c" + l for l in string.ascii_letters]
+    )
+    groups = ["(%s)", r"(?=%s)", r"(?!%s)", r"(?<=%s)", r"(?<!%s)"]
+    repeaters = ["%s?", "%s*", "%s+", "%s??", "%s*?", "%s+?"]
+    small = st.integers(0, 9).map(str)
+    num_repeat = st.one_of(
+        small,
+        small.map(lambda s: s + ","),
+        st.tuples(small, small).map(sorted).map(",".join),
+    ).map(lambda s: r"%s{" + s + r"}")
+    repeat_chars = tuple("?*+}")
+
+    def repeater(rgx, rpt):
+        if rgx.endswith(repeat_chars) and rpt.endswith(repeat_chars):
+            rgx = "(" + rgx + ")"
+        return rpt % (rgx,)
+
+    regex = st.deferred(
+        lambda: char
+        | sets
+        | special
+        | st.builds(repeater, char | sets | special, st.sampled_from(groups))
+        | st.builds(repeater, regex, st.sampled_from(["(%s)"] + repeaters) | num_repeat)
+        | st.lists(regex, min_size=2, unique=True).map("|".join)
+    )
+    return st.builds(str.format, st.sampled_from(["{}", "^{}", "{}$", "^{}$"]), regex)
+
+
+@settings(deadline=None, max_examples=1000)
+@given(st.data(), regex_patterns())
+def test_translates_any_pattern(data, pattern):
+    jr = js_regex.compile(pattern)
+    for _ in range(3):
+        value = data.draw(st.from_regex(jr))
+        assert jr.search(value)
