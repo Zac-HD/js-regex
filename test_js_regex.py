@@ -146,17 +146,26 @@ def regex_patterns():
     """Generates JS-valid regex patterns - a subset of all valid JS regex syntax,
     but a superset of that recommended for JSON-schema:
     https://json-schema.org/understanding-json-schema/reference/regular_expressions.html
+
+    For example, it doesn't generate inverted metachars in charsets because
+    converting [^\\W] ('not not word') is not currently supported.
     """
     char = st.sampled_from(
         ["."]
         + [re.escape(c) for c in string.printable]
         + [r"\w", r"\s", r"\d", r"\W", r"\D", r"\S"]
     )
-    sets = st.tuples(st.sampled_from(["[{}]", "[^{}]"]), st.sets(char, min_size=1)).map(
-        lambda rp: rp[0].format("".join(sorted(rp[1])))
-    )
+    setchars = list(string.printable) + [r"\w", r"\s", r"\d"]
+    for c in r"\-[]":
+        setchars.remove(c)
+        setchars.append("\\" + c)
+    sets = st.builds(
+        str.format,
+        st.sampled_from(["[{}]", "[^{}]"]),
+        st.sets(st.sampled_from(setchars), min_size=1).map(sorted).map(''.join),
+    ).filter(lambda x: x != "[^]")
     special = st.sampled_from(
-        [r"\a", r"[\b]"] + [r"\c" + l for l in string.ascii_letters]
+        [r"\a"] + [r"\c" + l for l in string.ascii_letters]
     )
     groups = ["(%s)", r"(?=%s)", r"(?!%s)", r"(?<=%s)", r"(?<!%s)"]
     repeaters = ["%s?", "%s*", "%s+", "%s??", "%s*?", "%s+?"]
@@ -191,3 +200,10 @@ def test_translates_any_pattern(data, pattern):
     for _ in range(3):
         value = data.draw(st.from_regex(jr))
         assert jr.search(value)
+
+
+@pytest.mark.parametrize("charset", ["[%s]", "[^%s]"])
+@pytest.mark.parametrize("metachar", [r"\D", r"\W", r"\S"])
+def test_no_inverted_metachar_in_charset(metachar, charset):
+    with pytest.raises(NotImplementedError):
+        js_regex.compile(charset % (metachar,))

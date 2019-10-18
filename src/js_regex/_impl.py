@@ -8,7 +8,7 @@ from sys import version_info as python_version
 
 try:
     from functools import lru_cache
-    from typing import Any, Pattern  # pragma: no cover  # for Python 2
+    from typing import Any, Match, Pattern  # pragma: no cover  # for Python 2
 except ImportError:  # pragma: no cover
 
     def lru_cache(maxsize):  # type: ignore
@@ -19,8 +19,31 @@ class NotJavascriptRegex(ValueError):
     """The pattern uses Python regex features that do not exist in Javascript."""
 
 
+class NoInvertedMetacharsInCharsets(NotImplementedError):
+    r"""Inverted metachars are not (yet) supported in charsets, e.g. r'[\W]'."""
+
+
 if python_version.major < 3:  # pragma: no cover  # Awful Python 2 compat hack.
     exec("chr = unichr")  # nosec
+
+
+def sub_charset(contents):
+    # type: (Match[str]) -> str
+    contents = contents.group(0)
+    if re.search(r"(?<!\\)\\[DWS]", contents):
+        raise NoInvertedMetacharsInCharsets(
+            "charset %r contains an inverted metacharacter, which we do not yet "
+            "convert from the JS (ascii) interpretation to Python (unicode)."
+            % (contents,)
+        )
+    for esc, repl in (
+        ("$", r"\$"),
+        (r"\d", "0-9"),
+        (r"\w", "A-Za-z"),
+        (r"\s", " \t\n\r\x0b\x0c"),
+    ):
+        contents = re.sub(r"(?<!\\)" + re.escape(esc), repl=repl, string=contents)
+    return contents
 
 
 @lru_cache(maxsize=512)  # Matches the internal cache size for re.compile
@@ -49,10 +72,17 @@ def compile(pattern, flags=0):
     if flags & re.VERBOSE:
         raise NotJavascriptRegex("The re.VERBOSE flag has no equivalent in Javascript")
 
-    # Replace JS-only BELL escape with BELL character, and replace character class
-    # shortcuts (Unicode in Python) with the corresponding ASCII set like in JS.
+    # Replace JS-only BELL escape with BELL character
+    # r"(?<!\\)" is 'not preceeded by a backslash', i.e. the escape is unescaped.
+    pattern = re.sub(r"(?<!\\)\\a", repl="\a", string=pattern)
+    # Replace character class shortcuts (Unicode in Python) with the corresponding
+    # ASCII set like in JS; handling charsets first to avoid nesting them!
+
+    # TODO: not capturing everything in charsets that include "\]"...
+    pattern = re.sub(r"(?<!\\)\[.+(?<!\\)\]", repl=sub_charset, string=pattern)
+
+
     for esc, replacement in [
-        (r"\a", "\a"),
         (r"\d", "[0-9]"),
         (r"\D", "[^0-9]"),
         (r"\w", "[A-Za-z]"),
@@ -60,7 +90,6 @@ def compile(pattern, flags=0):
         (r"\s", "[ \t\n\r\x0b\x0c]"),
         (r"\S", "[^ \t\n\r\x0b\x0c]"),
     ]:
-        # r"(?<!\\)" is 'not preceeded by a backslash', i.e. the escape is unescaped.
         pattern = re.sub(r"(?<!\\)" + re.escape(esc), repl=replacement, string=pattern)
     # Replace JS-only control-character escapes \cA - \cZ and \ca - \cz
     # with their corresponding control characters.
