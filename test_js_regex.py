@@ -162,11 +162,9 @@ def regex_patterns():
     sets = st.builds(
         str.format,
         st.sampled_from(["[{}]", "[^{}]"]),
-        st.sets(st.sampled_from(setchars), min_size=1).map(sorted).map(''.join),
+        st.lists(st.sampled_from(setchars), min_size=1, unique=True).map("".join),
     ).filter(lambda x: x != "[^]")
-    special = st.sampled_from(
-        [r"\a"] + [r"\c" + l for l in string.ascii_letters]
-    )
+    special = st.sampled_from([r"\a"] + [r"\c" + l for l in string.ascii_letters])
     groups = ["(%s)", r"(?=%s)", r"(?!%s)", r"(?<=%s)", r"(?<!%s)"]
     repeaters = ["%s?", "%s*", "%s+", "%s??", "%s*?", "%s+?"]
     small = st.integers(0, 9).map(str)

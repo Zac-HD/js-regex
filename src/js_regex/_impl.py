@@ -27,21 +27,23 @@ if python_version.major < 3:  # pragma: no cover  # Awful Python 2 compat hack.
     exec("chr = unichr")  # nosec
 
 
-def sub_charset(contents):
+def sub_charset(matched):
     # type: (Match[str]) -> str
-    contents = contents.group(0)
+    contents = matched.group(0)
+    replacements = {"$": r"\$", r"\d": "0-9", r"\w": "A-Za-z", r"\s": " \t\n\r\x0b\x0c"}
+    # We don't handle charsets containing inverted metachars in the general case,
+    # but it's not too hard to do some by hand.  Hopefully this covers most users!
+    if re.search(r"\A\[^?(\\[DWS\])+\]\Z", contents):
+        for meta in (r"\W", r"\D", r"\S"):
+            contents = contents.replace(meta, replacements[meta.lower()])
+        return contents.replace("[", "[^").replace("^^", "")
     if re.search(r"(?<!\\)\\[DWS]", contents):
         raise NoInvertedMetacharsInCharsets(
             "charset %r contains an inverted metacharacter, which we do not yet "
             "convert from the JS (ascii) interpretation to Python (unicode)."
             % (contents,)
         )
-    for esc, repl in (
-        ("$", r"\$"),
-        (r"\d", "0-9"),
-        (r"\w", "A-Za-z"),
-        (r"\s", " \t\n\r\x0b\x0c"),
-    ):
+    for esc, repl in replacements.items():
         contents = re.sub(r"(?<!\\)" + re.escape(esc), repl=repl, string=contents)
     return contents
 
@@ -80,7 +82,6 @@ def compile(pattern, flags=0):
 
     # TODO: not capturing everything in charsets that include "\]"...
     pattern = re.sub(r"(?<!\\)\[.+(?<!\\)\]", repl=sub_charset, string=pattern)
-
 
     for esc, replacement in [
         (r"\d", "[0-9]"),
